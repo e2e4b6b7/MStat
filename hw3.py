@@ -1,7 +1,8 @@
 import numpy as np
-from numpy import ndarray
 import matplotlib.pyplot as plt
+import seaborn as sns
 import heapq
+from numpy import ndarray
 from utils import transpose
 
 
@@ -22,24 +23,50 @@ def simulate2(n: int, alpha: float) -> ndarray:
     return np.array(waiting_time)
 
 
-experiments = [simulate1, simulate2]
-ns = [100, 10000]
-alphas = [1 / 2, 1, 2]
-repetitions = 300
+def get_diffs(waiting_times: ndarray) -> ndarray:
+    return waiting_times[:-1] - waiting_times[1:]
 
-for experiment in experiments:
-    for n in ns:
-        valuess = []
-        for alpha in alphas:
-            values = np.zeros(n)
-            for _ in range(repetitions):
-                values += experiment(n, alpha)
-            values /= repetitions
-            valuess.append(values)
 
-        fig, ax = plt.subplots()
-        ax.plot([i for i in range(n)], transpose(valuess))
-        ax.legend(["alpha = {}".format(alpha) for alpha in alphas])
-        ax.set_ylabel("time")
-        ax.set_xlabel("k")
-        fig.savefig("{}_{}.png".format(experiment.__name__, n))
+def waiting_time_distribution(experiments: list, ns: list, alphas: list, repetitions: int) -> None:
+    for experiment in experiments:
+        for n in ns:
+            waiting_times = []
+            diff_times = []
+            for alpha in alphas:
+                values = np.zeros(n)
+                for _ in range(repetitions):
+                    values += experiment(n, alpha)
+                values /= repetitions
+                waiting_times.append(values)
+                diff_times.append(get_diffs(values))
+
+            fig, ax = plt.subplots()
+            ax.plot([i for i in range(n)], transpose(waiting_times))
+            ax.legend(["alpha = {}".format(alpha) for alpha in alphas])
+            ax.set_ylabel("time")
+            ax.set_xlabel("k")
+            fig.savefig("{}_{}.png".format(experiment.__name__, n))
+            plt.close(fig)
+
+
+def waiting_time_diff_distribution(experiments: list, ns: list, ks: list, alphas: list, repetitions: int) -> None:
+    for experiment in experiments:
+        for n in ns:
+            for alpha in alphas:
+                values = [[] for _ in range(3)]
+                ks_cur = [int(n * k) for k in ks]
+                for _ in range(repetitions):
+                    exp = experiment(n, alpha)
+                    for i in range(len(ks_cur)):
+                        values[i].append(exp[ks_cur[i]] - exp[ks_cur[i] - 1])
+
+                for i in range(len(ks_cur)):
+                    fig = sns.displot(values[i])
+                    fig.savefig(fname="diff_{}_{}_{}_{}.png".format(experiment.__name__, n, alpha, ks_cur[i]))
+                    plt.close(fig.figure)
+
+
+if __name__ == "__main__":
+    experiments = [simulate1, simulate2]
+    waiting_time_distribution(experiments, [100, 10000], [1 / 2, 1, 2], 400)
+    waiting_time_diff_distribution(experiments, [5000], [1 / 20, 1 / 2, 19 / 20], [1 / 2, 2], 10000)
