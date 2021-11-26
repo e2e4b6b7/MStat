@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import scipy.stats as st
 
 sizes = [1000 * i for i in range(1, 30)]
-iterations = 10
+iterations = 300
 sigma = 1
 gammas = [0.1, 0.5, 0.95]
 
